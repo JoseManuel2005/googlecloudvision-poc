@@ -1,5 +1,4 @@
-//Devuelve una lista con las emociones estimadas por rostro detectado.
-
+// /app/api/vision/faces/route.ts
 import { NextResponse } from "next/server";
 import vision from "@google-cloud/vision";
 
@@ -12,12 +11,15 @@ export async function POST(req: Request) {
     const buffer = Buffer.from(bytes);
 
     const [result] = await client.faceDetection({ image: { content: buffer } });
+
     const faces = result.faceAnnotations?.map((face, index) => ({
       faceId: index + 1,
       joy: face.joyLikelihood,
       sorrow: face.sorrowLikelihood,
       anger: face.angerLikelihood,
       surprise: face.surpriseLikelihood,
+      detectionConfidence: face.detectionConfidence,
+      boundingPoly: face.boundingPoly?.vertices || [],
     }));
 
     return NextResponse.json({ faces });

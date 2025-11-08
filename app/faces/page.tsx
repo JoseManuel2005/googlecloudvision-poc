@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 export default function FacesPage() {
   const [image, setImage] = useState<File | null>(null);
@@ -12,11 +12,15 @@ export default function FacesPage() {
       sorrow: string;
       anger: string;
       surprise: string;
+      detectionConfidence: number;
+      boundingPoly: { x?: number; y?: number }[];
     }[]
   >([]);
   const [loading, setLoading] = useState(false);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+  const [imgSize, setImgSize] = useState({ w: 1, h: 1, naturalW: 1, naturalH: 1 });
 
-  // Traducción de niveles
+  // Traducción y colores
   const interpretacion: Record<string, string> = {
     VERY_LIKELY: "Muy probable",
     LIKELY: "Probable",
@@ -25,7 +29,6 @@ export default function FacesPage() {
     VERY_UNLIKELY: "Nada probable",
   };
 
-  // Colores para cada nivel
   const colores: Record<string, string> = {
     VERY_LIKELY: "bg-green-500",
     LIKELY: "bg-green-400",
@@ -34,13 +37,32 @@ export default function FacesPage() {
     VERY_UNLIKELY: "bg-red-500",
   };
 
+  // Actualiza tamaño mostrado de la imagen
+  useEffect(() => {
+    if (!imgRef.current) return;
+    const updateSize = () => {
+      const img = imgRef.current!;
+      setImgSize({
+        w: img.clientWidth,
+        h: img.clientHeight,
+        naturalW: img.naturalWidth,
+        naturalH: img.naturalHeight,
+      });
+    };
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(imgRef.current);
+    return () => observer.disconnect();
+  }, [preview]);
+
   const handleFileChange = (file: File | null) => {
     if (file) {
       setImage(file);
       setPreview(URL.createObjectURL(file));
+      setFaces([]);
     } else {
       setImage(null);
       setPreview(null);
+      setFaces([]);
     }
   };
 
@@ -95,12 +117,55 @@ export default function FacesPage() {
         </label>
 
         {preview && (
-          <div className="mt-2 w-full">
+          <div className="relative mt-2 w-full">
             <img
+              ref={imgRef}
               src={preview}
               alt="Vista previa"
               className="w-full h-64 object-contain rounded-lg shadow-sm border"
+              onLoad={(e) => {
+                const img = e.currentTarget;
+                setImgSize({
+                  w: img.clientWidth,
+                  h: img.clientHeight,
+                  naturalW: img.naturalWidth,
+                  naturalH: img.naturalHeight,
+                });
+              }}
             />
+
+            {/* Overlays responsivos */}
+            {faces.map((face, i) => {
+              const { boundingPoly } = face;
+              if (!boundingPoly || boundingPoly.length < 4) return null;
+
+              const xScale = imgSize.w / imgSize.naturalW;
+              const yScale = imgSize.h / imgSize.naturalH;
+
+              const x = (boundingPoly[0].x || 0) * xScale;
+              const y = (boundingPoly[0].y || 0) * yScale;
+              const w =
+                ((boundingPoly[1]?.x || 0) - (boundingPoly[0]?.x || 0)) * xScale;
+              const h =
+                ((boundingPoly[2]?.y || 0) - (boundingPoly[1]?.y || 0)) * yScale;
+
+              return (
+                <div
+                  key={i}
+                  className="absolute border-4 border-blue-500 rounded-lg transition-all"
+                  style={{
+                    left: `${x}px`,
+                    top: `${y}px`,
+                    width: `${w}px`,
+                    height: `${h}px`,
+                  }}
+                >
+                  <span className="absolute -top-6 left-0 bg-blue-600 text-white text-xs px-2 py-1 rounded">
+                    Rostro {face.faceId}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -133,27 +198,21 @@ export default function FacesPage() {
                 <span>😊</span>
                 <span>Alegría</span>
                 <span>{interpretacion[face.joy]}</span>
-                <span
-                  className={`w-4 h-4 rounded-full ${colores[face.joy]}`}
-                ></span>
+                <span className={`w-4 h-4 rounded-full ${colores[face.joy]}`}></span>
               </div>
 
               <div className="grid grid-cols-4 items-center text-sm font-medium text-gray-700 mb-2">
                 <span>😢</span>
                 <span>Tristeza</span>
                 <span>{interpretacion[face.sorrow]}</span>
-                <span
-                  className={`w-4 h-4 rounded-full ${colores[face.sorrow]}`}
-                ></span>
+                <span className={`w-4 h-4 rounded-full ${colores[face.sorrow]}`}></span>
               </div>
 
               <div className="grid grid-cols-4 items-center text-sm font-medium text-gray-700 mb-2">
                 <span>😠</span>
                 <span>Ira</span>
                 <span>{interpretacion[face.anger]}</span>
-                <span
-                  className={`w-4 h-4 rounded-full ${colores[face.anger]}`}
-                ></span>
+                <span className={`w-4 h-4 rounded-full ${colores[face.anger]}`}></span>
               </div>
 
               <div className="grid grid-cols-4 items-center text-sm font-medium text-gray-700">
@@ -164,6 +223,10 @@ export default function FacesPage() {
                   className={`w-4 h-4 rounded-full ${colores[face.surprise]}`}
                 ></span>
               </div>
+
+              <div className="mt-3 text-xs text-gray-500">
+                Confianza: {(face.detectionConfidence * 100).toFixed(1)}%
+              </div>
             </div>
           ))}
         </div>
@@ -171,3 +234,4 @@ export default function FacesPage() {
     </main>
   );
 }
+
