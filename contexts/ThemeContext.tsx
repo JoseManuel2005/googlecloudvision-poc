@@ -1,5 +1,4 @@
 "use client";
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
 type Theme = 'light' | 'dark';
@@ -11,41 +10,51 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>('light');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    // Verificar tema guardado en localStorage o preferencia del sistema
-    const savedTheme = localStorage.getItem('theme') as Theme;
-    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    
-    setTheme(savedTheme || systemTheme);
   }, []);
+
+  const toggleTheme = () => {
+    setTheme(prev => {
+      const next = prev === 'light' ? 'dark' : 'light';
+      if (mounted) {
+        localStorage.setItem('theme', next);
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!mounted) return;
-
-    const root = document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
+    // Leer el tema guardado solo en cliente
+    const savedTheme = localStorage.getItem('theme') as Theme | null;
+    if (savedTheme === 'dark' || savedTheme === 'light') {
+      setTheme(savedTheme);
     }
-    
-    // Guardar en localStorage
-    localStorage.setItem('theme', theme);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mounted]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
   }, [theme, mounted]);
 
-  const toggleTheme = () => {
-    setTheme(prev => prev === 'light' ? 'dark' : 'light');
-  };
-
   if (!mounted) {
-    return <div className="hidden">Loading...</div>; 
+    // Evita hydration mismatch: no renderiza nada hasta que el tema esté listo
+    return null;
   }
-
+  if (!mounted) {
+    return null;
+  }
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
       {children}

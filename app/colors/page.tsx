@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-// @ts-ignore
+// @ts-expect-error: color-namer no tiene tipos disponibles
 import namer from "color-namer";
 import { Palette, ImagePlus, Loader2, Sparkles } from "lucide-react";
 import Footer from "@/components/common/Footer";
