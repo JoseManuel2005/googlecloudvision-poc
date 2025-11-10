@@ -242,7 +242,7 @@ export default function FacesPage() {
                       height: `${h}px`,
                     }}
                   >
-                    <span className="absolute -top-7 left-0 bg-yellow-500 text-white text-xs px-2 py-1 rounded-md shadow">
+                    <span className="absolute -top-7 left-0 bg-blue-600 text-white text-xs px-2 py-1 rounded-md shadow">
                       Rostro {face.faceId}
                     </span>
                   </div>
