@@ -1,8 +1,6 @@
 "use client";
-
 import { useState, useRef, useEffect } from "react";
 import { ImagePlus, Sparkles, Loader2, ScanFace } from "lucide-react";
-import Footer from "@/components/common/Footer";
 
 export default function FacesPage() {
   const [image, setImage] = useState<File | null>(null);
@@ -20,11 +18,14 @@ export default function FacesPage() {
   >([]);
   const [loading, setLoading] = useState(false);
   const imgRef = useRef<HTMLImageElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [imgSize, setImgSize] = useState({
     w: 1,
     h: 1,
     naturalW: 1,
     naturalH: 1,
+    offsetX: 0,
+    offsetY: 0,
   });
 
   const interpretacion: Record<string, string> = {
@@ -44,14 +45,32 @@ export default function FacesPage() {
   };
 
   useEffect(() => {
-    if (!imgRef.current) return;
+    if (!imgRef.current || !containerRef.current) return;
     const updateSize = () => {
       const img = imgRef.current!;
+      const container = containerRef.current!;
+      const imgAspect = img.naturalWidth / img.naturalHeight;
+      const containerAspect = container.clientWidth / container.clientHeight;
+      
+      let renderedWidth, renderedHeight, offsetX = 0, offsetY = 0;
+      
+      if (imgAspect > containerAspect) {
+        renderedWidth = container.clientWidth;
+        renderedHeight = container.clientWidth / imgAspect;
+        offsetY = (container.clientHeight - renderedHeight) / 2;
+      } else {
+        renderedHeight = container.clientHeight;
+        renderedWidth = container.clientHeight * imgAspect;
+        offsetX = (container.clientWidth - renderedWidth) / 2;
+      }
+      
       setImgSize({
-        w: img.clientWidth,
-        h: img.clientHeight,
+        w: renderedWidth,
+        h: renderedHeight,
         naturalW: img.naturalWidth,
         naturalH: img.naturalHeight,
+        offsetX,
+        offsetY,
       });
     };
     const observer = new ResizeObserver(updateSize);
@@ -80,7 +99,7 @@ export default function FacesPage() {
     setImage(null);
     setPreview(null);
     setFaces([]);
-    setImgSize({ w: 1, h: 1, naturalW: 1, naturalH: 1 });
+    setImgSize({ w: 1, h: 1, naturalW: 1, naturalH: 1, offsetX: 0, offsetY: 0 });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -108,7 +127,7 @@ export default function FacesPage() {
 
   return (
     <main className="min-h-screen bg-white dark:bg-gray-950 flex flex-col items-center p-6 relative overflow-hidden">
-      {/* Fondos decorativos tipo Google */}
+      {/* Fondos decorativos */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-32 right-16 w-96 h-96 bg-linear-to-br from-[#4285F4]/20 to-[#1967D2]/10 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-32 left-16 w-80 h-80 bg-linear-to-br from-[#EA4335]/20 to-[#C5221F]/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1s" }}></div>
@@ -123,14 +142,12 @@ export default function FacesPage() {
               Análisis Facial
             </span>
           </div>
-
           <h1 className="text-5xl font-bold text-gray-900 dark:text-white leading-tight">
             Detección de{" "}
             <span className="bg-yellow-500 bg-clip-text text-transparent">
               Rostros y Emociones
             </span>
           </h1>
-
           <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed">
             Carga una imagen para identificar rostros y emociones detectadas con{" "}
             <span className="font-semibold text-gray-900 dark:text-white">
@@ -166,38 +183,54 @@ export default function FacesPage() {
 
           {/* Vista previa con bounding boxes */}
           {preview && (
-            <div className="relative mt-6 w-full">
+            <div ref={containerRef} className="relative mt-6 w-full h-80">
               <img
                 ref={imgRef}
                 src={preview}
                 alt="Vista previa"
-                className="w-full h-80 object-contain rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg"
+                className="absolute inset-0 w-full h-full object-contain rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg"
                 onLoad={(e) => {
                   const img = e.currentTarget;
+                  const container = containerRef.current!;
+                  
+                  const imgAspect = img.naturalWidth / img.naturalHeight;
+                  const containerAspect = container.clientWidth / container.clientHeight;
+                  
+                  let renderedWidth, renderedHeight, offsetX = 0, offsetY = 0;
+                  
+                  if (imgAspect > containerAspect) {
+                    renderedWidth = container.clientWidth;
+                    renderedHeight = container.clientWidth / imgAspect;
+                    offsetY = (container.clientHeight - renderedHeight) / 2;
+                  } else {
+                    renderedHeight = container.clientHeight;
+                    renderedWidth = container.clientHeight * imgAspect;
+                    offsetX = (container.clientWidth - renderedWidth) / 2;
+                  }
+                  
                   setImgSize({
-                    w: img.clientWidth,
-                    h: img.clientHeight,
+                    w: renderedWidth,
+                    h: renderedHeight,
                     naturalW: img.naturalWidth,
                     naturalH: img.naturalHeight,
+                    offsetX,
+                    offsetY,
                   });
                 }}
               />
-
               {faces.map((face, i) => {
                 const { boundingPoly } = face;
                 if (!boundingPoly || boundingPoly.length < 4) return null;
-
                 const xScale = imgSize.w / imgSize.naturalW;
                 const yScale = imgSize.h / imgSize.naturalH;
-                const x = (boundingPoly[0].x || 0) * xScale;
-                const y = (boundingPoly[0].y || 0) * yScale;
+                const x = (boundingPoly[0].x || 0) * xScale + imgSize.offsetX;
+                const y = (boundingPoly[0].y || 0) * yScale + imgSize.offsetY;
                 const w =
                   ((boundingPoly[1]?.x || 0) - (boundingPoly[0]?.x || 0)) *
                   xScale;
                 const h =
-                  ((boundingPoly[2]?.y || 0) - (boundingPoly[1]?.y || 0)) *
+                  ((boundingPoly[2]?.y || 0) - (boundingPoly[0]?.y || 0)) *
                   yScale;
-
                 return (
                   <div
                     key={i}
@@ -221,7 +254,8 @@ export default function FacesPage() {
           <button
             type="submit"
             disabled={!image || loading}
-            className="w-full flex justify-center items-center gap-2 bg-yellow-600 dark:bg-yellow-950/50 border border-yellow-200 dark:border-yellow-800 text-white font-medium px-6 py-3 rounded-xl hover:bg-yellow-700 transition-all duration-300 disabled:opacity-50 shadow-lg cursor-pointer" >
+            className="w-full flex justify-center items-center gap-2 bg-yellow-600 dark:bg-yellow-950/50 border border-yellow-200 dark:border-yellow-800 text-white font-medium px-6 py-3 rounded-xl hover:bg-yellow-700 transition-all duration-300 disabled:opacity-50 shadow-lg cursor-pointer"
+          >
             {loading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" /> Analizando...
@@ -247,7 +281,6 @@ export default function FacesPage() {
             <h2 className="text-3xl font-bold text-center mb-6 text-gray-900 dark:text-white">
               <ScanFace className="w-8 h-8 inline-block mr-2 mb-1"/> Rostros Detectados ({faces.length})
             </h2>
-
             {faces.map((face, index) => (
               <div
                 key={index}
@@ -256,7 +289,6 @@ export default function FacesPage() {
                 <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">
                   Rostro {index + 1}
                 </h3>
-
                 {[
                   { icon: "😊", label: "Alegría", val: face.joy },
                   { icon: "😢", label: "Tristeza", val: face.sorrow },
@@ -273,7 +305,6 @@ export default function FacesPage() {
                     <span className={`w-4 h-4 rounded-full ${colores[val]}`}></span>
                   </div>
                 ))}
-
                 <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
                   Confianza: {(face.detectionConfidence * 100).toFixed(1)}%
                 </div>
@@ -281,8 +312,6 @@ export default function FacesPage() {
             ))}
           </div>
         )}
-
-        <Footer />
       </div>
     </main>
   );
