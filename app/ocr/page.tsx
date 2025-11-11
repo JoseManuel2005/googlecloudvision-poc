@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { ImagePlus, Loader2, Sparkles, PencilIcon } from "lucide-react";
 import Footer from "@/components/common/Footer";
 
@@ -9,6 +9,9 @@ export default function OCRPage() {
   const [preview, setPreview] = useState<string | null>(null);
   const [result, setResult] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false); // Para feedback visual
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (file: File | null) => {
     if (file) {
@@ -18,6 +21,33 @@ export default function OCRPage() {
       setImage(null);
       setPreview(null);
     }
+  };
+
+  const onDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      if (file.type.startsWith("image/")) {
+        handleFileChange(file);
+      }
+      // Opcional: limpiar selección anterior del input
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }, []);
+
+  const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const onDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const onClickUpload = () => {
+    fileInputRef.current?.click();
   };
 
   const handleClear = () => {
@@ -63,7 +93,6 @@ export default function OCRPage() {
           className="absolute bottom-32 left-16 w-80 h-80 bg-linear-to-br from-[#EA4335]/20 to-[#C5221F]/10 rounded-full blur-3xl animate-pulse"
           style={{ animationDelay: "1s" }}
         ></div>
-
       </div>
 
       <div className="relative z-10 w-full max-w-5xl">
@@ -97,24 +126,34 @@ export default function OCRPage() {
           onSubmit={handleSubmit}
           className="bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-800 rounded-3xl p-10 shadow-xl backdrop-blur-sm flex flex-col items-center gap-6 transition-all duration-500 hover:shadow-2xl"
         >
-          <label
-            htmlFor="fileInput"
-            className="w-full border-2 border-dashed border-gray-400 dark:border-gray-700 rounded-2xl p-10 text-center cursor-pointer bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-300"
+          {/* Área de arrastrar y soltar */}
+          <div
+            onDrop={onDrop}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onClick={onClickUpload}
+            className={`w-full border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all duration-300 ${
+              isDragging
+                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                : "border-gray-400 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50"
+            }`}
           >
             <div className="flex flex-col items-center space-y-4">
               <ImagePlus className="w-10 h-10 text-[#4285F4]" />
               <span className="text-gray-600 dark:text-gray-300 font-medium">
-                Haz clic o arrastra una imagen aquí
+                {isDragging
+                  ? "¡Suelta la imagen aquí!"
+                  : "Haz clic o arrastra una imagen aquí"}
               </span>
             </div>
             <input
-              id="fileInput"
+              ref={fileInputRef}
               type="file"
               accept="image/*"
               className="hidden"
               onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
             />
-          </label>
+          </div>
 
           {/* Vista previa */}
           {preview && (
@@ -130,7 +169,8 @@ export default function OCRPage() {
           <button
             type="submit"
             disabled={!image || loading}
-            className="w-full flex justify-center items-center gap-2 bg-blue-600 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 text-white font-medium px-6 py-3 rounded-xl hover:bg-blue-700 transition-all duration-300 disabled:opacity-50 shadow-lg cursor-pointer" >
+            className="w-full flex justify-center items-center gap-2 bg-blue-600 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 text-white font-medium px-6 py-3 rounded-xl hover:bg-blue-700 transition-all duration-300 disabled:opacity-50 shadow-lg cursor-pointer"
+          >
             {loading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" /> Analizando...
@@ -154,7 +194,7 @@ export default function OCRPage() {
         {result && (
           <div className="mt-14 bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-800 p-10 rounded-3xl shadow-xl transition-all">
             <h2 className="text-3xl font-bold text-center mb-8 text-gray-900 dark:text-white">
-              <PencilIcon className="w-8 h-8 inline-block mr-2 mb-1"/> Resultado del OCR
+              <PencilIcon className="w-8 h-8 inline-block mr-2 mb-1" /> Resultado del OCR
             </h2>
             <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-inner overflow-auto max-h-[400px]">
               <p className="whitespace-pre-line text-gray-700 dark:text-gray-300 text-sm leading-relaxed">

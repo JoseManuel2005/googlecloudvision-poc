@@ -1,5 +1,5 @@
 "use client";
-import { Eye, Menu, X, FileText, Palette, Smile, Tag, ShieldAlert, Moon, Sun } from "lucide-react";
+import { Eye, Menu, X, FileText, Palette, Smile, Tag, ShieldAlert, Moon, Sun, LocateIcon, Globe, ScanSearch, View, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -11,14 +11,22 @@ const navLinks = [
   { href: "/faces", label: "Rostros", icon: Smile, color: "#FBBC04" },
   { href: "/labels", label: "Etiquetas", icon: Tag, color: "#34A853" },
   { href: "/safe", label: "Contenido", icon: ShieldAlert, color: "#EA4335" },
+  { href: "/landmarks", label: "Localizaciones", icon: LocateIcon, color: "#4285F4" },
+  { href: "/logos", label: "Logos", icon: View, color: "#4285F4" },
+  { href: "/objects", label: "Objetos", icon: ScanSearch, color: "#FBBC04" },
+  { href: "/web", label: "Web", icon: Globe, color: "#34A853" }
 ];
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
 
   const isActive = (path: string) => pathname === path;
+
+  // Encuentra el link activo actual
+  const activeLink = navLinks.find(link => isActive(link.href));
 
   return (
     <nav className="sticky top-0 z-50 bg-white dark:bg-gray-950/80 backdrop-blur-xl border-b-2 border-gray-200 dark:border-gray-800 shadow-lg">
@@ -56,56 +64,103 @@ export default function Navbar() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-2">
-            {navLinks.map((link) => {
-              const Icon = link.icon;
-              const active = isActive(link.href);
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`relative flex items-center gap-2.5 px-5 py-2.5 rounded-xl font-semibold transition-all duration-300 group ${
-                    active
-                      ? ""
-                      : "hover:bg-gray-50 dark:hover:bg-gray-800/50"
-                  }`}
-                >
-                  {/* Active indicator */}
-                  {active && (
+            {/* Dropdown Menu para Modos */}
+            <div className="relative">
+              <button
+                onClick={() => setDesktopMenuOpen(!desktopMenuOpen)}
+                onBlur={() => setTimeout(() => setDesktopMenuOpen(false), 200)}
+                className="relative flex items-center gap-2.5 px-5 py-2.5 rounded-xl font-semibold transition-all duration-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 group cursor-pointer"
+              >
+                {activeLink ? (
+                  <>
+                    <div 
+                      className="p-1.5 rounded-lg scale-110"
+                      style={{ backgroundColor: `${activeLink.color}20` }}
+                    >
+                      {(() => {
+                        const Icon = activeLink.icon;
+                        return <Icon className="w-4 h-4" style={{ color: activeLink.color }} strokeWidth={2.5} />;
+                      })()}
+                    </div>
+                    <span className="text-sm text-gray-900 dark:text-white">
+                      {activeLink.label}
+                    </span>
                     <div 
                       className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-1 rounded-full"
-                      style={{ backgroundColor: link.color }}
+                      style={{ backgroundColor: activeLink.color }}
                     ></div>
-                  )}
-                  
-                  <div 
-                    className={`p-1.5 text-gray-900 dark:text-white duration-300 ${
-                      active ? 'scale-110' : 'group-hover:scale-110'
-                    }`}
-                    style={{ 
-                      backgroundColor: active ? `${link.color}20` : 'transparent'
-                    }}
-                  >
-                    <Icon 
-                      className="w-4 h-4 transition-colors duration-300" 
-                      style={{ 
-                        color: active ? link.color : 'currentColor'
-                      }}
-                      strokeWidth={2.5}
-                    />
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-4 h-4 text-[#4285F4]" strokeWidth={2.5} />
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      Modos de Visión
+                    </span>
+                  </>
+                )}
+                <ChevronDown 
+                  className={`w-4 h-4 transition-transform duration-300 ${desktopMenuOpen ? 'rotate-180' : ''} text-gray-500`} 
+                  strokeWidth={2.5} 
+                />
+              </button>
+
+              {/* Dropdown Content */}
+              {desktopMenuOpen && (
+                <div className="absolute top-full mt-2 right-0 w-64 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border-2 border-gray-200 dark:border-gray-800 overflow-hidden">
+                  <div className="p-2">
+                    {navLinks.map((link) => {
+                      const Icon = link.icon;
+                      const active = isActive(link.href);
+                      return (
+                        <Link
+                          key={link.href}
+                          href={link.href}
+                          onClick={() => setDesktopMenuOpen(false)}
+                          className={`relative flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-300 group ${
+                            active
+                              ? "bg-gray-50 dark:bg-gray-800"
+                              : "hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                          }`}
+                        >
+                          {/* Active indicator */}
+                          {active && (
+                            <div 
+                              className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full"
+                              style={{ backgroundColor: link.color }}
+                            ></div>
+                          )}
+                          
+                          <div 
+                            className={`p-2 rounded-lg text-gray-900 dark:text-white transition-all duration-300`}
+                            style={{ 
+                              backgroundColor: active ? `${link.color}20` : 'transparent'
+                            }}
+                          >
+                            <Icon 
+                              className="w-4 h-4" 
+                              style={{ 
+                                color: active ? link.color : 'currentColor'
+                              }}
+                              strokeWidth={2.5}
+                            />
+                          </div>
+                          
+                          <span 
+                            className={`text-sm ${
+                              active 
+                                ? 'text-gray-900 dark:text-white font-semibold' 
+                                : 'text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white'
+                            }`}
+                          >
+                            {link.label}
+                          </span>
+                        </Link>
+                      );
+                    })}
                   </div>
-                  
-                  <span 
-                    className={`text-sm transition-colors duration-300 ${
-                      active 
-                        ? 'text-gray-900 dark:text-white' 
-                        : 'text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white'
-                    }`}
-                  >
-                    {link.label}
-                  </span>
-                </Link>
-              );
-            })}
+                </div>
+              )}
+            </div>
             
             {/* Theme Toggle Button with Google colors */}
             <button
