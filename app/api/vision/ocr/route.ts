@@ -24,8 +24,9 @@ export async function POST(req: Request) {
       text: detections?.[0]?.description || "No se detectó texto",
     });
 
-  } catch (error: any) {
-    console.error("Error OCR:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error("Error OCR:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

@@ -21,8 +21,9 @@ export async function POST(req: Request) {
       medical: safe?.medical,
       spoof: safe?.spoof,
     });
-  } catch (error: any) {
-    console.error("Error SafeSearch:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error("Error SafeSearch:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

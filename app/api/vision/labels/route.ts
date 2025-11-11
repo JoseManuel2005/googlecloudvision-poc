@@ -18,8 +18,9 @@ export async function POST(req: Request) {
     }));
 
     return NextResponse.json({ labels });
-  } catch (error: any) {
-    console.error("Error Labels:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error("Error Labels:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

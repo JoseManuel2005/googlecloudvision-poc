@@ -23,8 +23,9 @@ export async function POST(req: Request) {
     }));
 
     return NextResponse.json({ faces });
-  } catch (error: any) {
-    console.error("Error Faces:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error("Error Faces:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
