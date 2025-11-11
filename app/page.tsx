@@ -1,5 +1,5 @@
 "use client";
-import { FileText, Palette, Smile, Tag, ShieldAlert, Sparkles, ArrowRight } from "lucide-react";
+import { FileText, Palette, Smile, Tag, ShieldAlert, Sparkles, ArrowRight, Globe, Boxes } from "lucide-react";
 import Link from "next/link";
 
 export default function Home() {
@@ -58,6 +58,28 @@ export default function Home() {
       bgGradient: "bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/30 dark:to-red-900/20",
       borderColor: "border-red-200 dark:border-red-800",
       hoverShadow: "hover:shadow-red-200 dark:hover:shadow-red-900/50",
+    },
+    {
+      title: "Localización de Objetos",
+      description: "Detecta y ubica objetos específicos con bounding boxes.",
+      link: "/objects",
+      icon: Boxes,
+      color: "red",
+      gradient: "from-[#EA4335] to-[#C5221F]",
+      bgGradient: "bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/30 dark:to-red-900/20",
+      borderColor: "border-red-200 dark:border-red-800",
+      hoverShadow: "hover:shadow-red-200 dark:hover:shadow-red-900/50",
+    },
+    {
+      title: "Detección Web",
+      description: "Busca imágenes similares y páginas relacionadas en la web.",
+      link: "/web",
+      icon: Globe,
+      color: "green",
+      gradient: "from-[#34A853] to-[#188038]",
+      bgGradient: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/20",
+      borderColor: "border-green-200 dark:border-green-800",
+      hoverShadow: "hover:shadow-green-200 dark:hover:shadow-green-900/50",
     },
   ];
 
