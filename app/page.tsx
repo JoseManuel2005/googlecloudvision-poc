@@ -1,5 +1,5 @@
 "use client";
-import { FileText, Palette, Smile, Tag, ShieldAlert, Sparkles, ArrowRight } from "lucide-react";
+import { FileText, Palette, Smile, Tag, ShieldAlert, Sparkles, ArrowRight, LocateIcon, ScanSearch, Globe, View } from "lucide-react";
 import Link from "next/link";
 
 export default function Home() {
@@ -59,6 +59,50 @@ export default function Home() {
       borderColor: "border-red-200 dark:border-red-800",
       hoverShadow: "hover:shadow-red-200 dark:hover:shadow-red-900/50",
     },
+    {
+      title: "Detección de Localizaciones",
+      description: "Identifica puntos de referencia y localizaciones famosas en la imagen.",
+      link: "/landmarks",
+      icon: LocateIcon,
+      color: "blue",
+      gradient: "from-[#4285F4] to-[#1967D2]",
+      bgGradient: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20",
+      borderColor: "border-blue-200 dark:border-blue-800",
+      hoverShadow: "hover:shadow-blue-200 dark:hover:shadow-blue-900/50",
+    },
+    {
+      title: "Detección de Logotipos",
+      description: "Reconoce logotipos de marcas conocidas en la imagen.",
+      link: "/logos",
+      icon: View,
+      color: "blue",
+      gradient: "from-[#4285F4] to-[#1967D2]",
+      bgGradient: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20",
+      borderColor: "border-blue-200 dark:border-blue-800",
+      hoverShadow: "hover:shadow-blue-200 dark:hover:shadow-blue-900/50",
+    },
+    {
+      title: "Detección de Objetos",
+      description: "Identifica y localiza objetos específicos dentro de la imagen.",
+      link: "/objects",
+      icon: ScanSearch,
+      color: "yellow",
+      gradient: "from-[#FBBC04] to-[#F9AB00]",
+      bgGradient: "bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-950/30 dark:to-yellow-900/20",
+      borderColor: "border-yellow-200 dark:border-yellow-800",
+      hoverShadow: "hover:shadow-yellow-200 dark:hover:shadow-yellow-900/50",
+    },
+    {
+      title: "Detección Web",
+      description: "Encuentra información relacionada en la web sobre la imagen.",
+      link: "/web",
+      icon: Globe,
+      color: "green",
+      gradient: "from-[#34A853] to-[#188038]",
+      bgGradient: "bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/20",
+      borderColor: "border-green-200 dark:border-green-800",
+      hoverShadow: "hover:shadow-green-200 dark:hover:shadow-green-900/50",
+    }
   ];
 
   return (
