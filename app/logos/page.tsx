@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import Footer from "@/components/common/Footer";
 import { BadgePercent, ImagePlus, Loader2, Scan, Sparkles, ChartBar } from "lucide-react";
 
@@ -20,9 +20,11 @@ export default function LogosPage() {
   const [preview, setPreview] = useState<string | null>(null);
   const [logos, setLogos] = useState<LogoResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   const imgRef = useRef<HTMLImageElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (file: File | null) => {
     if (file) {
@@ -32,6 +34,32 @@ export default function LogosPage() {
     } else {
       handleClear();
     }
+  };
+
+  const onDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      if (file.type.startsWith("image/")) {
+        handleFileChange(file);
+      }
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }, []);
+
+  const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const onDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const onClickUpload = () => {
+    fileInputRef.current?.click();
   };
 
   const handleClear = () => {
@@ -80,12 +108,10 @@ export default function LogosPage() {
     const cvs = canvasRef.current;
     if (!imgEl || !cvs) return;
 
-    // Tamaño CSS del contenedor (la propia <img>)
     const rect = imgEl.getBoundingClientRect();
     const cssW = rect.width;
     const cssH = rect.height;
 
-    // DPR para nitidez
     const dpr = window.devicePixelRatio || 1;
     cvs.style.width = `${cssW}px`;
     cvs.style.height = `${cssH}px`;
@@ -95,29 +121,23 @@ export default function LogosPage() {
     const ctx = cvs.getContext("2d");
     if (!ctx) return;
 
-    // Dibujar en coordenadas CSS
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, cssW, cssH);
 
-    // Tamaño natural de la imagen
     const natW = imgEl.naturalWidth || cssW;
     const natH = imgEl.naturalHeight || cssH;
 
-    // object-contain => escala uniforme y centrado
     const scale = Math.min(cssW / natW, cssH / natH);
     const renderW = natW * scale;
     const renderH = natH * scale;
 
-    // Letterboxing interno
     const offsetX = (cssW - renderW) / 2;
     const offsetY = (cssH - renderH) / 2;
 
     const mapPoint = (x: number, y: number, normalized = false) => {
       if (normalized) {
-        // normalizedVertices en [0..1] relativos al natural
         return { x: offsetX + x * renderW, y: offsetY + y * renderH };
       }
-      // vertices absolutos (px naturales)
       return { x: offsetX + x * scale, y: offsetY + y * scale };
     };
 
@@ -136,12 +156,10 @@ export default function LogosPage() {
 
       if (points.length < 3) return;
 
-      // Estilo
       ctx.lineWidth = 3;
       ctx.strokeStyle = "rgba(66,133,244,0.95)";
       ctx.fillStyle = "rgba(66,133,244,0.12)";
 
-      // Polígono
       ctx.beginPath();
       ctx.moveTo(points[0].x, points[0].y);
       for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
@@ -149,7 +167,6 @@ export default function LogosPage() {
       ctx.stroke();
       ctx.fill();
 
-      // Etiqueta
       const label = `${logo.description || "Logo"} • ${(logo.score * 100).toFixed(1)}%`;
       ctx.font = "600 12px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto";
       const paddingX = 6;
@@ -207,29 +224,38 @@ export default function LogosPage() {
           </p>
         </div>
 
-        {/* Formulario */}
+        {/* Formulario con área de arrastrar y soltar */}
         <form
           onSubmit={handleSubmit}
           className="bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-800 rounded-3xl p-8 shadow-2xl backdrop-blur-xl flex flex-col items-center gap-6 transition-all duration-500 hover:shadow-[0_0_40px_-10px_rgba(66,133,244,0.2)]"
         >
-          <label
-            htmlFor="fileInput"
-            className="border-2 border-dashed border-gray-400 dark:border-gray-700 rounded-2xl p-10 w-full text-center cursor-pointer bg-gray-50 dark:bg-gray-800/50 hover:border-[#4285F4] hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-300"
+          <div
+            onDrop={onDrop}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onClick={onClickUpload}
+            className={`border-2 border-dashed rounded-2xl p-10 w-full text-center cursor-pointer transition-all duration-300 ${
+              isDragging
+                ? "border-[#4285F4] bg-blue-50 dark:bg-blue-900/20"
+                : "border-gray-400 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 hover:border-[#4285F4] hover:bg-gray-100 dark:hover:bg-gray-700/50"
+            }`}
           >
             <div className="flex flex-col items-center space-y-3">
               <ImagePlus className="w-10 h-10 text-[#4285F4]" />
               <span className="text-gray-700 dark:text-gray-300 font-medium">
-                Haz clic o arrastra una imagen aquí
+                {isDragging
+                  ? "¡Suelta la imagen aquí!"
+                  : "Haz clic o arrastra una imagen aquí"}
               </span>
             </div>
             <input
-              id="fileInput"
+              ref={fileInputRef}
               type="file"
               accept="image/*"
               className="hidden"
               onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
             />
-          </label>
+          </div>
 
           {/* Vista previa con overlay */}
           {preview && (

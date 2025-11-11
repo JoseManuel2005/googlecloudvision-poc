@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { MapPin, ImagePlus, Loader2, Sparkles, Info } from "lucide-react";
 import Footer from "@/components/common/Footer";
 
@@ -24,8 +24,10 @@ export default function LandmarksPage() {
   const [landmarks, setLandmarks] = useState<Landmark[]>([]);
   const [fallback, setFallback] = useState<Fallback | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   const imgRef = useRef<HTMLImageElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [imgNatural, setImgNatural] = useState<{ w: number; h: number } | null>(null);
   const [imgRendered, setImgRendered] = useState<{ w: number; h: number } | null>(null);
 
@@ -53,8 +55,38 @@ export default function LandmarksPage() {
     setFallback(null);
   };
 
+  const onDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      if (file.type.startsWith("image/")) {
+        handleFileChange(file);
+      }
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }, []);
+
+  const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const onDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const onClickUpload = () => {
+    fileInputRef.current?.click();
+  };
+
   const handleClear = () => {
-    if (preview) { try { URL.revokeObjectURL(preview); } catch {} }
+    if (preview) {
+      try {
+        URL.revokeObjectURL(preview);
+      } catch {}
+    }
     setImage(null);
     setPreview(null);
     setLandmarks([]);
@@ -126,7 +158,7 @@ export default function LandmarksPage() {
 
   return (
     <main className="min-h-screen bg-white dark:bg-gray-950 flex flex-col items-center p-6 relative overflow-hidden">
-      {/* Fondos decorativos (consistentes con tus otras pages) */}
+      {/* Fondos decorativos */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-32 right-16 w-96 h-96 bg-linear-to-br from-[#4285F4]/20 to-[#1967D2]/10 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-32 left-16 w-80 h-80 bg-linear-to-br from-[#34A853]/20 to-[#188038]/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1s" }}></div>
@@ -155,22 +187,38 @@ export default function LandmarksPage() {
           </p>
         </div>
 
-        {/* Formulario */}
+        {/* Formulario con área de arrastrar y soltar */}
         <form
           onSubmit={handleSubmit}
           className="bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-800 rounded-3xl p-10 shadow-xl backdrop-blur-sm flex flex-col items-center gap-6 transition-all duration-500 hover:shadow-2xl"
         >
-          <label
-            htmlFor="fileInput"
-            className="w-full border-2 border-dashed border-gray-400 dark:border-gray-700 rounded-2xl p-10 text-center cursor-pointer bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-300"
+          <div
+            onDrop={onDrop}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onClick={onClickUpload}
+            className={`w-full border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all duration-300 ${
+              isDragging
+                ? "border-[#1a73e8] bg-blue-50 dark:bg-blue-900/20"
+                : "border-gray-400 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50"
+            }`}
           >
             <div className="flex flex-col items-center space-y-4">
               <ImagePlus className="w-10 h-10 text-[#1a73e8]" />
-              <span className="text-gray-600 dark:text-gray-300 font-medium">Haz clic o arrastra una imagen aquí</span>
+              <span className="text-gray-600 dark:text-gray-300 font-medium">
+                {isDragging
+                  ? "¡Suelta la imagen aquí!"
+                  : "Haz clic o arrastra una imagen aquí"}
+              </span>
             </div>
-            <input id="fileInput" type="file" accept="image/*" className="hidden"
-              onChange={(e) => handleFileChange(e.target.files?.[0] || null)} />
-          </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
+            />
+          </div>
 
           {preview && (
             <div className="mt-6 w-full">
@@ -194,7 +242,13 @@ export default function LandmarksPage() {
               disabled={!image || loading}
               className="w-full flex justify-center items-center gap-2 bg-[#1a73e8] dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 text-white font-medium px-6 py-3 rounded-xl hover:bg-[#1558b0] transition-all duration-300 disabled:opacity-50 shadow-lg cursor-pointer"
             >
-              {loading ? (<><Loader2 className="w-5 h-5 animate-spin" /> Analizando...</>) : ("Analizar Imagen")}
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" /> Analizando...
+                </>
+              ) : (
+                "Analizar Imagen"
+              )}
             </button>
             <button
               type="button"
@@ -302,7 +356,10 @@ export default function LandmarksPage() {
                         <h3 className="mt-4 font-semibold text-gray-900 dark:text-white">Etiquetas</h3>
                         <div className="mt-2 flex flex-wrap gap-2">
                           {fallback.labels.map((l, i) => (
-                            <span key={i} className="px-3 py-1 rounded-full text-xs bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300">
+                            <span
+                              key={i}
+                              className="px-3 py-1 rounded-full text-xs bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300"
+                            >
                               {l.description} · {(l.score * 100).toFixed(0)}%
                             </span>
                           ))}

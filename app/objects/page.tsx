@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Boxes, ImagePlus, Loader2, Sparkles, ChartBar } from "lucide-react";
 import Footer from "@/components/common/Footer";
 
@@ -12,8 +12,11 @@ export default function ObjectsPage() {
   >([]);
   const [loading, setLoading] = useState(false);
   const [pinnedLabels, setPinnedLabels] = useState<Set<number>>(new Set());
+  const [isDragging, setIsDragging] = useState(false);
+
   const imgRef = useRef<HTMLImageElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [imgSize, setImgSize] = useState({
     w: 1,
     h: 1,
@@ -69,6 +72,32 @@ export default function ObjectsPage() {
       setPreview(null);
       setObjects([]);
     }
+  };
+
+  const onDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      if (file.type.startsWith("image/")) {
+        handleFileChange(file);
+      }
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }, []);
+
+  const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const onDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const onClickUpload = () => {
+    fileInputRef.current?.click();
   };
 
   const handleClear = () => {
@@ -163,29 +192,38 @@ export default function ObjectsPage() {
           </p>
         </div>
 
-        {/* Formulario */}
+        {/* Formulario con área de arrastrar y soltar */}
         <form
           onSubmit={handleSubmit}
           className="bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-800 rounded-3xl p-8 shadow-2xl flex flex-col items-center gap-6 transition-all duration-500 hover:shadow-[0_0_40px_-10px_rgba(234,67,53,0.2)]"
         >
-          <label
-            htmlFor="fileInput"
-            className="border-2 border-dashed border-gray-400 dark:border-gray-700 rounded-2xl p-10 w-full text-center cursor-pointer bg-gray-50 dark:bg-gray-800/50 hover:border-yellow-500 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-300"
+          <div
+            onDrop={onDrop}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onClick={onClickUpload}
+            className={`border-2 border-dashed rounded-2xl p-10 w-full text-center cursor-pointer transition-all duration-300 ${
+              isDragging
+                ? "border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20"
+                : "border-gray-400 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 hover:border-yellow-500 hover:bg-gray-100 dark:hover:bg-gray-700/50"
+            }`}
           >
             <div className="flex flex-col items-center space-y-3">
               <ImagePlus className="w-10 h-10 text-yellow-500" />
               <span className="text-gray-700 dark:text-gray-300 font-medium">
-                Haz clic o arrastra una imagen aquí
+                {isDragging
+                  ? "¡Suelta la imagen aquí!"
+                  : "Haz clic o arrastra una imagen aquí"}
               </span>
             </div>
             <input
-              id="fileInput"
+              ref={fileInputRef}
               type="file"
               accept="image/*"
               className="hidden"
               onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
             />
-          </label>
+          </div>
 
           {/* Vista previa con recuadros precisos */}
           {preview && (
@@ -231,7 +269,6 @@ export default function ObjectsPage() {
               {objects.map((obj, i) => {
                 if (!obj.vertices || obj.vertices.length < 4) return null;
 
-                // Las coordenadas vienen normalizadas (0-1), las convertimos a píxeles de la imagen renderizada
                 const x = (obj.vertices[0].x || 0) * imgSize.w + imgSize.offsetX;
                 const y = (obj.vertices[0].y || 0) * imgSize.h + imgSize.offsetY;
                 const w = ((obj.vertices[1]?.x || 0) - (obj.vertices[0]?.x || 0)) * imgSize.w;

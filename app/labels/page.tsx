@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Tags, ImagePlus, Loader2, Sparkles, ChartBar } from "lucide-react";
 import Footer from "@/components/common/Footer";
 
@@ -9,6 +9,9 @@ export default function LabelsPage() {
   const [preview, setPreview] = useState<string | null>(null);
   const [labels, setLabels] = useState<{ description: string; score: number }[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (file: File | null) => {
     if (file) {
@@ -18,6 +21,32 @@ export default function LabelsPage() {
       setImage(null);
       setPreview(null);
     }
+  };
+
+  const onDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      if (file.type.startsWith("image/")) {
+        handleFileChange(file);
+      }
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }, []);
+
+  const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const onDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const onClickUpload = () => {
+    fileInputRef.current?.click();
   };
 
   const handleClear = () => {
@@ -92,29 +121,38 @@ export default function LabelsPage() {
           </p>
         </div>
 
-        {/* Formulario */}
+        {/* Formulario con área de arrastrar y soltar */}
         <form
           onSubmit={handleSubmit}
           className="bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-800 rounded-3xl p-8 shadow-2xl backdrop-blur-xl flex flex-col items-center gap-6 transition-all duration-500 hover:shadow-[0_0_40px_-10px_rgba(66,133,244,0.2)]"
         >
-          <label
-            htmlFor="fileInput"
-            className="border-2 border-dashed border-gray-400 dark:border-gray-700 rounded-2xl p-10 w-full text-center cursor-pointer bg-gray-50 dark:bg-gray-800/50 hover:border-[#34A853] hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-300"
+          <div
+            onDrop={onDrop}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onClick={onClickUpload}
+            className={`border-2 border-dashed rounded-2xl p-10 w-full text-center cursor-pointer transition-all duration-300 ${
+              isDragging
+                ? "border-[#34A853] bg-green-50 dark:bg-green-900/20"
+                : "border-gray-400 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 hover:border-[#34A853] hover:bg-gray-100 dark:hover:bg-gray-700/50"
+            }`}
           >
             <div className="flex flex-col items-center space-y-3">
               <ImagePlus className="w-10 h-10 text-[#34A853]" />
               <span className="text-gray-700 dark:text-gray-300 font-medium">
-                Haz clic o arrastra una imagen aquí
+                {isDragging
+                  ? "¡Suelta la imagen aquí!"
+                  : "Haz clic o arrastra una imagen aquí"}
               </span>
             </div>
             <input
-              id="fileInput"
+              ref={fileInputRef}
               type="file"
               accept="image/*"
               className="hidden"
               onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
             />
-          </label>
+          </div>
 
           {/* Vista previa */}
           {preview && (
@@ -130,7 +168,8 @@ export default function LabelsPage() {
           <button
             type="submit"
             disabled={!image || loading}
-            className="w-full flex justify-center items-center gap-2 bg-green-600 dark:bg-green-950/50 border border-green-200 dark:border-green-800 text-white font-medium px-6 py-3 rounded-xl hover:bg-green-700 transition-all duration-300 disabled:opacity-50 shadow-lg cursor-pointer" >
+            className="w-full flex justify-center items-center gap-2 bg-green-600 dark:bg-green-950/50 border border-green-200 dark:border-green-800 text-white font-medium px-6 py-3 rounded-xl hover:bg-green-700 transition-all duration-300 disabled:opacity-50 shadow-lg cursor-pointer"
+          >
             {loading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" /> Analizando...
@@ -154,7 +193,7 @@ export default function LabelsPage() {
         {labels.length > 0 && (
           <div className="mt-14 bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-800 p-8 rounded-3xl shadow-xl transition-all duration-500 hover:shadow-[0_0_30px_-10px_rgba(251,188,4,0.3)]">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6 text-center">
-              <ChartBar className="w-8 h-8 inline-block mr-2 mb-1"/> Resultados del Análisis
+              <ChartBar className="w-8 h-8 inline-block mr-2 mb-1" /> Resultados del Análisis
             </h2>
 
             <div className="space-y-4">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 // @ts-expect-error: color-namer no tiene tipos disponibles
 import namer from "color-namer";
 import { Palette, ImagePlus, Loader2, Sparkles } from "lucide-react";
@@ -13,6 +13,9 @@ export default function ColorsPage() {
     { rgb: { r: number; g: number; b: number }; score: number }[]
   >([]);
   const [loading, setLoading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (file: File | null) => {
     if (file) {
@@ -22,6 +25,33 @@ export default function ColorsPage() {
       setImage(null);
       setPreview(null);
     }
+  };
+
+  const onDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      if (file.type.startsWith("image/")) {
+        handleFileChange(file);
+      }
+      // Limpiar input si se usó antes
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }, []);
+
+  const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const onDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const onClickUpload = () => {
+    fileInputRef.current?.click();
   };
 
   const handleClear = () => {
@@ -94,29 +124,38 @@ export default function ColorsPage() {
           </p>
         </div>
 
-        {/* Formulario */}
+        {/* Formulario con soporte de arrastrar y soltar */}
         <form
           onSubmit={handleSubmit}
           className="bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-800 rounded-3xl p-10 shadow-xl backdrop-blur-sm flex flex-col items-center gap-6 transition-all duration-500 hover:shadow-2xl"
         >
-          <label
-            htmlFor="fileInput"
-            className="w-full border-2 border-dashed border-gray-400 dark:border-gray-700 rounded-2xl p-10 text-center cursor-pointer bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-all duration-300"
+          <div
+            onDrop={onDrop}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onClick={onClickUpload}
+            className={`w-full border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all duration-300 ${
+              isDragging
+                ? "border-red-500 bg-red-50 dark:bg-red-900/20"
+                : "border-gray-400 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50"
+            }`}
           >
             <div className="flex flex-col items-center space-y-4">
               <ImagePlus className="w-10 h-10 text-red-500" />
               <span className="text-gray-600 dark:text-gray-300 font-medium">
-                Haz clic o arrastra una imagen aquí
+                {isDragging
+                  ? "¡Suelta la imagen aquí!"
+                  : "Haz clic o arrastra una imagen aquí"}
               </span>
             </div>
             <input
-              id="fileInput"
+              ref={fileInputRef}
               type="file"
               accept="image/*"
               className="hidden"
               onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
             />
-          </label>
+          </div>
 
           {/* Vista previa */}
           {preview && (
@@ -132,7 +171,8 @@ export default function ColorsPage() {
           <button
             type="submit"
             disabled={!image || loading}
-            className="w-full flex justify-center items-center gap-2 bg-red-600 dark:bg-red-950/50 border border-red-200 dark:border-red-800 text-white font-medium px-6 py-3 rounded-xl hover:bg-red-700 transition-all duration-300 disabled:opacity-50 shadow-lg cursor-pointer" >
+            className="w-full flex justify-center items-center gap-2 bg-red-600 dark:bg-red-950/50 border border-red-200 dark:border-red-800 text-white font-medium px-6 py-3 rounded-xl hover:bg-red-700 transition-all duration-300 disabled:opacity-50 shadow-lg cursor-pointer"
+          >
             {loading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" /> Analizando...
@@ -156,7 +196,7 @@ export default function ColorsPage() {
         {colors.length > 0 && (
           <div className="mt-14 bg-white dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-800 p-10 rounded-3xl shadow-xl transition-all">
             <h2 className="text-3xl font-bold text-center mb-8 text-gray-900 dark:text-white">
-              <Palette className="w-8 h-8 inline-block mr-2 mb-1"/> Colores Detectados
+              <Palette className="w-8 h-8 inline-block mr-2 mb-1" /> Colores Detectados
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
@@ -166,7 +206,7 @@ export default function ColorsPage() {
                   .toString(16)
                   .slice(1)
                   .toUpperCase()}`;
-                const colorName = namer(hex).pantone[0].name;
+                const colorName = namer(hex).pantone?.[0]?.name || "Desconocido";
                 const percentage = (c.score * 100).toFixed(1);
 
                 return (
