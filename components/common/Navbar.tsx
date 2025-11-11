@@ -40,7 +40,11 @@ export default function Navbar() {
               
               {/* Icon container */}
               <div className="relative w-12 h-12 bg-white dark:bg-gray-900 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                <Eye className="w-6 h-6 text-[#4285F4] group-hover:text-[#EA4335] transition-colors duration-300" strokeWidth={2.5} />
+                <img
+                  src="/favicon.ico"
+                  alt="Logo"
+                  className="w-7 h-7 object-contain"
+                />
               </div>
             </div>
             
