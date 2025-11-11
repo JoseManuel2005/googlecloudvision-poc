@@ -54,8 +54,14 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ landmarks, fallback });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error Landmarks:", error);
-    return NextResponse.json({ error: String(error?.message || error) }, { status: 500 });
+    let errorMessage = "Unknown error";
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    } else if (typeof error === "string") {
+      errorMessage = error;
+    }
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
