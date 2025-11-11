@@ -2,17 +2,23 @@
 
 import { NextResponse } from "next/server";
 import vision from "@google-cloud/vision";
-
+import type { protos } from "@google-cloud/vision";
 export async function POST(req: Request) {
   try {
-    const client = new vision.ImageAnnotatorClient();
+  let client: InstanceType<typeof vision.ImageAnnotatorClient>;
+    if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+      const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+      client = new vision.ImageAnnotatorClient({ credentials });
+    } else {
+      client = new vision.ImageAnnotatorClient();
+    }
     const formData = await req.formData();
     const file = formData.get("file") as File;
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
     const [result] = await client.labelDetection({ image: { content: buffer } });
-    const labels = result.labelAnnotations?.map(label => ({
+    const labels = result.labelAnnotations?.map((label: protos.google.cloud.vision.v1.IEntityAnnotation) => ({
       description: label.description,
       score: label.score,
     }));
